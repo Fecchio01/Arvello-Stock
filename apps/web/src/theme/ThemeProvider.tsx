@@ -1,13 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 export type Theme = 'light' | 'dark'
-export type AccentColor = 'blue' | 'violet' | 'teal' | 'green' | 'rose' | 'amber'
+export type AccentColor = 'blue' | 'violet' | 'teal' | 'rose' | 'amber'
 
 export const ACCENT_COLORS: { id: AccentColor; label: string; light: string; dark: string }[] = [
   { id: 'blue', label: 'Azul', light: '#0A84FF', dark: '#64A9FF' },
   { id: 'violet', label: 'Violeta', light: '#7047C8', dark: '#B49AFF' },
   { id: 'teal', label: 'Turquesa', light: '#087E8B', dark: '#62D5DD' },
-  { id: 'green', label: 'Verde', light: '#287A4B', dark: '#71D39A' },
   { id: 'rose', label: 'Rosa', light: '#B43D69', dark: '#FF8FB4' },
   { id: 'amber', label: 'Dourado', light: '#966300', dark: '#F0C36A' },
 ]
@@ -23,7 +22,7 @@ const THEME_COLORS: Record<Theme, string> = { light: '#F3F4F6', dark: '#101114' 
 function readStoredAccent(): AccentColor {
   try {
     const saved = window.localStorage.getItem(ACCENT_STORAGE_KEY)
-    if (saved === 'lime') return 'blue'
+    if (saved === 'lime' || saved === 'green') return 'blue'
     if (ACCENT_COLORS.some((color) => color.id === saved)) return saved as AccentColor
     const legacySaved = window.localStorage.getItem(PREVIOUS_ACCENT_STORAGE_KEY)
       ?? window.localStorage.getItem(LEGACY_ACCENT_STORAGE_KEY)
