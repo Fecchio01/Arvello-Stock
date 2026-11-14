@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#F5F7F0" />
+    <meta name="theme-color" content="#F3F4F6" />
     <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/png" href="/arvello-mark.png" />
     <title>Arvello · Operação</title>
   </head>
   <body>
@@ -15,7 +16,7 @@
         const theme = savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : 'light';
         document.documentElement.dataset.theme = theme;
         document.documentElement.style.colorScheme = theme;
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'dark' ? '#101312' : '#F5F7F0');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'dark' ? '#101114' : '#F3F4F6');
       } catch {
         document.documentElement.dataset.theme = 'light';
         document.documentElement.style.colorScheme = 'light';
