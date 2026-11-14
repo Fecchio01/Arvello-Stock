@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
 import { businessMemberRoleLabel, canManageBusiness, type BusinessMemberRole, useBusiness } from '../business/BusinessContext'
 import { Icon } from '../components/Icon'
 import { ProfileSettingsPanel } from '../components/ProfileSettingsPanel'
@@ -22,7 +20,6 @@ type BusinessMember = {
 }
 
 export function SettingsPage() {
-  const { session } = useAuth()
   const business = useBusiness()
   const { accent, setAccent, theme, toggleTheme } = useTheme()
   const [accessRequests, setAccessRequests] = useState<AccessRequest[]>([])
@@ -51,7 +48,10 @@ export function SettingsPage() {
   }, [membersMessage])
 
   const loadAccessRequests = useCallback(async () => {
-    if (!supabaseClient || !canManageBusiness(business.role)) return
+    if (!supabaseClient || !canManageBusiness(business.role)) {
+      setRequestsLoading(false)
+      return
+    }
     const { data, error } = await supabaseClient
       .from('business_access_requests')
       .select('id, user_id, email, created_at')
@@ -67,6 +67,7 @@ export function SettingsPage() {
 
   const loadMembers = useCallback(async () => {
     if (!supabaseClient || !canManageBusiness(business.role)) {
+      setMembersLoading(false)
       return
     }
     const { data, error } = await supabaseClient.rpc('list_business_members', { p_business_id: business.id })
@@ -83,40 +84,12 @@ export function SettingsPage() {
   }, [business.id, business.role])
 
   useEffect(() => {
-    if (!supabaseClient || !canManageBusiness(business.role)) return
-    let active = true
-    supabaseClient
-      .from('business_access_requests')
-      .select('id, user_id, email, created_at')
-      .eq('business_id', business.id)
-      .order('created_at', { ascending: true })
-      .then(({ data, error }) => {
-        if (!active) return
-        if (error) setRequestError('Não foi possível carregar os pedidos de acesso.')
-        else setAccessRequests((data ?? []) as AccessRequest[])
-        setRequestsLoading(false)
-      })
-    return () => { active = false }
-  }, [business.id, business.role])
+    void loadAccessRequests()
+  }, [loadAccessRequests])
 
   useEffect(() => {
-    if (!supabaseClient || !canManageBusiness(business.role)) return
-    let active = true
-    supabaseClient.rpc('list_business_members', { p_business_id: business.id }).then(({ data, error }) => {
-      if (!active) return
-      if (error) {
-        if (isMissingRpc(error)) {
-          setMemberManagementPending(true)
-          setMembersError(null)
-        } else setMembersError('Não foi possível carregar as pessoas com acesso. Tente novamente.')
-      } else {
-        setMemberManagementPending(false)
-        setMembers((data ?? []) as BusinessMember[])
-      }
-      setMembersLoading(false)
-    })
-    return () => { active = false }
-  }, [business.id, business.role])
+    void loadMembers()
+  }, [loadMembers])
 
   function retryAccessRequests() {
     setRequestsLoading(true)
@@ -232,95 +205,70 @@ export function SettingsPage() {
         <div>
           <p className="eyebrow">SISTEMA</p>
           <h1>Configurações</h1>
-          <p className="page-description">Perfil, acesso, equipe e aparência do sistema.</p>
+          <p className="page-description">Perfil, senha, acessos e aparência.</p>
         </div>
         <span className="module-heading-icon"><Icon name="settings" /></span>
       </header>
 
       <nav aria-label="Seções das configurações" className="finance-subnav settings-section-nav">
         <a href="#settings-profile">Perfil</a>
-        <a href="#settings-account">Conta</a>
-        <a href="#settings-access">Acessos</a>
-        {canManageBusiness(business.role) && <a href="#settings-team">Equipe</a>}
+        <a href="#settings-security">Senha</a>
+        {canManageBusiness(business.role) && <a href="#settings-access">Pedidos</a>}
+        {canManageBusiness(business.role) && <a href="#settings-team">Pessoas</a>}
         <a href="#settings-appearance">Aparência</a>
-        <a href="#settings-automation">Automação</a>
       </nav>
 
       <div id="settings-profile" className="settings-anchor-target"><ProfileSettingsPanel /></div>
 
-      <section id="settings-account" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="account-title">
+      {canManageBusiness(business.role) && <section id="settings-access" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="access-requests-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">CONTA</p>
-            <h2 id="account-title">Conta da empresa</h2>
+            <p className="eyebrow">ACESSO</p>
+            <h2 id="access-requests-title">Pedidos para entrar</h2>
           </div>
-          <span className="connected-status"><span className="connected-dot" /> Sessão ativa</span>
+          <span className="neutral-status">{requestsLoading ? 'Carregando…' : `${accessRequests.length} pendentes`}</span>
         </div>
-        <dl className="settings-detail-list">
-          <div><dt>Empresa</dt><dd>{business.name}</dd></div>
-          <div><dt>E-mail</dt><dd>{session?.user.email ?? 'Conta autenticada'}</dd></div>
-          <div><dt>Perfil</dt><dd>{businessMemberRoleLabel(business.role)}</dd></div>
-          <div><dt>Moeda</dt><dd>Real brasileiro (BRL)</dd></div>
-          <div><dt>Fuso horário</dt><dd>America/Sao_Paulo</dd></div>
-        </dl>
-      </section>
-
-      <section id="settings-access" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="access-requests-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">ACESSO À EMPRESA</p>
-            <h2 id="access-requests-title">Pedidos de acesso</h2>
-          </div>
-          {canManageBusiness(business.role) && <span className="neutral-status">{requestsLoading ? 'Carregando…' : `${accessRequests.length} pendentes`}</span>}
-        </div>
-        {canManageBusiness(business.role) ? (
-          <>
-            <p className="settings-appearance-description">Novas contas só acessam os dados da empresa depois que você aprovar o pedido.</p>
-            {requestError && accessRequests.length > 0 && <p className="form-message form-message-error" role="alert">{requestError}</p>}
-            {requestMessage && <p className="form-message form-message-success" role="status">{requestMessage}</p>}
-            {requestsLoading ? (
-              <p className="settings-team-empty" role="status">Carregando pedidos…</p>
-            ) : requestError && accessRequests.length === 0 ? (
-              <div className="settings-team-feedback"><p className="form-message form-message-error" role="alert">{requestError}</p><button className="button button-secondary" disabled={requestsLoading} onClick={retryAccessRequests} type="button">Tentar novamente</button></div>
-            ) : accessRequests.length ? (
-              <ul className="settings-access-requests">
-                {accessRequests.map((request) => (
-                  <li key={request.id}>
-                    <div className="settings-access-request-main">
-                      <strong>{request.email}</strong>
-                      <small>Solicitado em {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(request.created_at))}</small>
-                    </div>
-                    <div className="settings-access-request-actions">
-                      <button className="button button-secondary" disabled={requestActionId !== null} onClick={() => void rejectAccessRequest(request)} type="button">
-                        Recusar
-                      </button>
-                      <button className="button button-primary" disabled={requestActionId !== null} onClick={() => void approveAccessRequest(request)} type="button">
-                        {requestActionId === request.id ? 'Salvando…' : 'Aprovar'}
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="settings-team-empty">Nenhum pedido aguardando aprovação.</p>
-            )}
-            <p className="section-footnote">Como a confirmação por e-mail está desligada, confirme a identidade da pessoa por outro canal antes de aprovar.</p>
-          </>
+        {requestError && accessRequests.length > 0 && <p className="form-message form-message-error" role="alert">{requestError}</p>}
+        {requestMessage && <p className="form-message form-message-success" role="status">{requestMessage}</p>}
+        {requestsLoading ? (
+          <p className="settings-team-empty" role="status">Carregando pedidos…</p>
+        ) : requestError && accessRequests.length === 0 ? (
+          <div className="settings-team-feedback"><p className="form-message form-message-error" role="alert">{requestError}</p><button className="button button-secondary" disabled={requestsLoading} onClick={retryAccessRequests} type="button">Tentar novamente</button></div>
+        ) : accessRequests.length ? (
+          <ul className="settings-access-requests">
+            {accessRequests.map((request) => (
+              <li key={request.id}>
+                <div className="settings-access-request-main">
+                  <strong>{request.email}</strong>
+                  <small>Solicitado em {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(request.created_at))}</small>
+                </div>
+                <div className="settings-access-request-actions">
+                  <button className="button button-secondary" disabled={requestActionId !== null} onClick={() => void rejectAccessRequest(request)} type="button">
+                    Recusar
+                  </button>
+                  <button className="button button-primary" disabled={requestActionId !== null} onClick={() => void approveAccessRequest(request)} type="button">
+                    {requestActionId === request.id ? 'Salvando…' : 'Aprovar'}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <p className="settings-team-empty">A aprovação de novos acessos é feita pela gestão da empresa.</p>
+          <p className="settings-team-empty">Nenhum pedido aguardando aprovação.</p>
         )}
-      </section>
+        <p className="section-footnote">Confirme a identidade antes de liberar o acesso.</p>
+      </section>}
 
       {canManageBusiness(business.role) && <section id="settings-team" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="team-members-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">EQUIPE AUTORIZADA</p>
+            <p className="eyebrow">EQUIPE</p>
             <h2 id="team-members-title">Pessoas com acesso</h2>
           </div>
-          <span className="neutral-status">{membersLoading ? 'Carregando…' : memberManagementPending ? 'Atualização pendente' : `${members.length} pessoas`}</span>
+          <span className="neutral-status">{membersLoading ? 'Carregando…' : memberManagementPending ? 'Indisponível' : `${members.length} pessoas`}</span>
         </div>
-        <p className="settings-appearance-description">O proprietário e a gestão mantêm acesso administrativo. Você pode remover o acesso de integrantes da equipe quando necessário.</p>
-        {memberManagementPending && <p className="settings-team-empty" role="status">A configuração do banco para gerenciar a equipe ainda está pendente. A lista completa e a remoção de acessos ficarão disponíveis quando a migration de gestão da equipe for aplicada.</p>}
+        <p className="settings-appearance-description">Veja quem pode usar o sistema e remova acessos quando precisar.</p>
+        {memberManagementPending && <p className="settings-team-empty" role="status">O gerenciamento da equipe ainda não está disponível.</p>}
         {membersError && <div className="settings-team-feedback"><p className="form-message form-message-error" role="alert">{membersError}</p><button className="button button-secondary" disabled={membersLoading} onClick={retryMembers} type="button">Tentar novamente</button></div>}
         {membersMessage && <p className="form-message form-message-success settings-team-success" ref={membersMessageRef} role="status" tabIndex={-1}>{membersMessage}</p>}
         {membersLoading ? (
@@ -328,7 +276,7 @@ export function SettingsPage() {
         ) : members.length ? (
           <ul className="settings-team-members">
             {members.map((member) => {
-              const memberEmail = member.member_email ?? `Conta ${member.member_user_id.slice(0, 8)} · e-mail indisponível`
+              const memberEmail = member.member_email ?? 'Conta sem e-mail'
               const isPendingRemoval = pendingRemoval?.userId === member.member_user_id
               return <li key={member.member_user_id}>
                 <div className="settings-access-request-main">
@@ -343,7 +291,7 @@ export function SettingsPage() {
                       {isPendingRemoval ? 'Fechar confirmação' : 'Remover acesso'}
                     </button>
                   </div>
-                ) : <span className="settings-team-member-note">Remoção indisponível sem e-mail para o histórico.</span>}
+                ) : <span className="settings-team-member-note">A remoção não está disponível para esta conta.</span>}
                 {isPendingRemoval && pendingRemoval && <div className="settings-member-confirmation" role="group" aria-label={`Confirmar remoção do acesso de ${pendingRemoval.email}`}>
                   <p>Remover o acesso de <strong>{pendingRemoval.email}</strong>? A pessoa perderá o acesso à empresa e poderá enviar um novo pedido para a gestão.</p>
                   {removalError && <p className="form-message form-message-error" role="alert">{removalError}</p>}
@@ -360,18 +308,6 @@ export function SettingsPage() {
         ) : null}
       </section>}
 
-      <section id="settings-delivery-team" className="surface-panel settings-panel settings-team-entry settings-anchor-target" aria-labelledby="team-entry-title">
-        <div className="section-heading">
-          <div><p className="eyebrow">ENTREGAS</p><h2 id="team-entry-title">Equipe de entregadores</h2></div>
-          <span className="neutral-status">Cadastro e painel</span>
-        </div>
-        <p className="settings-appearance-description">Cadastre entregadores, conecte cada conta ao painel e desative acessos quando necessário.</p>
-        <div className="settings-records-shortcuts">
-          <Link to="/equipe">Gerenciar equipe</Link>
-          <Link to="/entregas">Ver entregas</Link>
-        </div>
-      </section>
-
       <section id="settings-appearance" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="appearance-title">
         <div className="section-heading">
           <div>
@@ -380,7 +316,7 @@ export function SettingsPage() {
           </div>
           <button className="button button-secondary settings-theme-action" onClick={toggleTheme} type="button">Ativar tema {theme === 'dark' ? 'claro' : 'escuro'}</button>
         </div>
-        <p className="settings-appearance-description">Escolha a cor usada em botões, links e destaques. A preferência fica salva neste dispositivo.</p>
+        <p className="settings-appearance-description">Escolha o tema e a cor do sistema. A mudança fica salva neste dispositivo.</p>
         <div className="accent-options" role="group" aria-label="Escolha a cor de destaque">
           {ACCENT_COLORS.map((color) => (
             <button
@@ -397,34 +333,6 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <section id="settings-automation" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="automations-title">
-        <div className="section-heading">
-          <div><p className="eyebrow">AUTOMAÇÃO</p><h2 id="automations-title">Regras da operação</h2></div>
-          <span className="neutral-status">1 ativa</span>
-        </div>
-        <ul className="settings-automation-list">
-          <li><span><strong>Atualização do estoque</strong><small>Automática quando o pedido sai para entrega ou é retirado.</small></span><span className="connected-status"><span className="connected-dot" /> Ativa</span></li>
-          <li><span><strong>Mensagens pelo WhatsApp</strong><small>Aguardando a conexão do canal.</small></span><span className="neutral-status">Pendente</span></li>
-          <li><span><strong>Avisos e lembretes</strong><small>Regras serão definidas antes de ativar.</small></span><span className="neutral-status">Não configurado</span></li>
-        </ul>
-      </section>
-
-      <section id="settings-data" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="records-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">DADOS DA OPERAÇÃO</p>
-            <h2 id="records-title">Preenchimento progressivo</h2>
-          </div>
-        </div>
-        <p className="settings-records-note">Cadastre os dados nos próprios módulos.</p>
-        <nav className="settings-records-shortcuts" aria-label="Atalhos para cadastrar dados">
-          <Link to="/clientes">Clientes</Link>
-          <Link to="/catalogo">Produtos</Link>
-          <Link to="/estoque">Estoque</Link>
-          <Link to="/pedidos">Pedidos</Link>
-          <Link to="/financeiro">Financeiro</Link>
-        </nav>
-      </section>
     </div>
   )
 }

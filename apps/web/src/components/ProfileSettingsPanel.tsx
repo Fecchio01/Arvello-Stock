@@ -224,9 +224,9 @@ export function ProfileSettingsPanel() {
         </form>
       </section>
 
-      <section className="surface-panel settings-panel" aria-labelledby="security-title">
+      <section id="settings-security" className="surface-panel settings-panel settings-anchor-target" aria-labelledby="security-title">
         <div className="section-heading">
-          <div><p className="eyebrow">SEGURANÇA</p><h2 id="security-title">Senha e recuperação</h2></div>
+          <div><p className="eyebrow">SEGURANÇA</p><h2 id="security-title">Senha</h2></div>
         </div>
         <form className="profile-password-form" onSubmit={(event) => void updatePassword(event)}>
           <label className="record-field"><span className="field-label">Senha atual</span><input autoComplete="current-password" className="text-input" onChange={(event) => setCurrentPassword(event.target.value)} required type="password" value={currentPassword} /></label>
