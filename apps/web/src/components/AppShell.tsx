@@ -107,11 +107,11 @@ export function AppShell() {
       <a className="skip-link" href="#main-content">Pular para o conteúdo</a>
       <aside className="desktop-sidebar" aria-label="Navegação principal">
         <div className="brand-lockup sidebar-brand" aria-label="Arvello">
-          <img className="brand-wordmark-light" src="/arvello-wordmark.svg" alt="Arvello" />
-          <span className="brand-wordmark-dark" aria-hidden="true">
+          <span className="brand-mark-light" aria-hidden="true"><img src="/arvello-wordmark-source.png" alt="" /></span>
+          <span className="brand-mark-dark" aria-hidden="true">
             <img className="brand-image" src="/arvello-mark.png" alt="" />
-            <strong>Arvello</strong>
           </span>
+          <strong>Arvello</strong>
         </div>
         <nav className="sidebar-nav">
           {desktopItems.map((item) => <NavigationLink item={item} key={item.to} />)}
@@ -129,11 +129,11 @@ export function AppShell() {
         <header className="topbar">
           <div className="topbar-greeting">
             <div className="brand-lockup topbar-brand-lockup" aria-label="Arvello">
-              <img className="brand-wordmark-light" src="/arvello-wordmark.svg" alt="Arvello" />
-              <span className="brand-wordmark-dark" aria-hidden="true">
+              <span className="brand-mark-light" aria-hidden="true"><img src="/arvello-wordmark-source.png" alt="" /></span>
+              <span className="brand-mark-dark" aria-hidden="true">
                 <img className="brand-image" src="/arvello-mark.png" alt="" />
-                <strong>Arvello</strong>
               </span>
+              <strong>Arvello</strong>
             </div>
             <small className="topbar-email">{getRouteLabel(location.pathname)}{displayName ? ` · ${displayName}` : ''}</small>
           </div>
