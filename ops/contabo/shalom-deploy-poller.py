@@ -13,8 +13,8 @@ import urllib.request
 from pathlib import Path
 from pathlib import PurePosixPath
 
-REPO = "https://github.com/Fecchio01/Sistema-shalomadonai.git"
-API = "https://api.github.com/repos/Fecchio01/Sistema-shalomadonai"
+REPO = "https://github.com/Fecchio01/Arvelo-Stock.git"
+API = "https://api.github.com/repos/Fecchio01/Arvelo-Stock"
 REPOSITORY = Path("/opt/shalom-deploy/repository")
 BUILD_SOURCE = Path("/opt/shalom-deploy/build-src")
 RELEASES = Path("/var/www/shalom-releases")
@@ -53,7 +53,7 @@ def ci_is_green(sha):
         if suite.get("head_sha") == sha
         and suite.get("head_branch") == "main"
         and suite.get("app", {}).get("slug") == "github-actions"
-        and suite.get("repository", {}).get("full_name") == "Fecchio01/Sistema-shalomadonai"
+        and suite.get("repository", {}).get("full_name") == "Fecchio01/Arvelo-Stock"
         and not suite.get("pull_requests")
     ]
     if not suites:
